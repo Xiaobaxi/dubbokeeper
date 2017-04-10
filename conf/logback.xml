@@ -6,7 +6,7 @@
     <timestamp key="byDate" datePattern="yyyyMMdd" />
 
     <appender name="dubboRolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/dubbo-framework/DUBBO.log</file>
+        <file>${LOG_HOME}/server/dubbo.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/dubbo-framework/DUBBO-%d{yyyy-MM-dd}.%i.zip</fileNamePattern>
             <maxHistory>30</maxHistory>
@@ -21,7 +21,7 @@
     </appender>
 
     <appender name="dkRolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/dubbokeeper/DubboKeeper.log</file>
+        <file>${LOG_HOME}/server/dubbokeeper.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/dubbokeeper/DubboKeeper-%d{yyyy-MM-dd}.%i.zip</fileNamePattern>
             <maxHistory>30</maxHistory>
@@ -36,7 +36,7 @@
     </appender>
 
     <appender name="writeRolling" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/dubbokeeper/Monitor-writer.log</file>
+        <file>${LOG_HOME}/server/monitor-writer.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_HOME}/dubbokeeper/Monitor-writer-%d{yyyy-MM-dd}.%i.zip</fileNamePattern>
             <maxHistory>30</maxHistory>
@@ -50,11 +50,13 @@
         </encoder>
     </appender>
 
+    <!--
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+    -->
 
     <!--dubbo-->
     <logger name="com.alibaba.dubbo" level="DEBUG">
@@ -69,7 +71,9 @@
         <appender-ref ref="dkRolling"/>
     </logger>
 
+    <!--
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />
     </root>
+    -->
 </configuration>
