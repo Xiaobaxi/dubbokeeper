@@ -1,8 +1,6 @@
 package com.dubboclub.dk.tracing.client.support;
 
 import com.alibaba.dubbo.common.extension.ExtensionLoader;
-import com.alibaba.dubbo.common.logger.Logger;
-import com.alibaba.dubbo.common.logger.LoggerFactory;
 import com.alibaba.dubbo.common.utils.ConfigUtils;
 import com.alibaba.dubbo.rpc.Protocol;
 import com.dubboclub.dk.tracing.api.Span;
@@ -10,11 +8,12 @@ import com.dubboclub.dk.tracing.api.TracingCollector;
 import com.dubboclub.dk.tracing.client.DstConstants;
 import com.dubboclub.dk.tracing.client.SyncTransfer;
 import com.dubboclub.dk.tracing.client.TracingCollectorFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by zetas on 2016/7/8.
@@ -62,6 +61,8 @@ public class DefaultSyncTransfer implements SyncTransfer {
                         collector =tracingCollectorFactory.getTracingCollector();
                         inited=true;
                     }
+                    logger.debug("push cached span, size: {}", cacheList.size());
+
                     collector.push(cacheList);
                     cacheList.clear();
                 } catch (InterruptedException e) {
