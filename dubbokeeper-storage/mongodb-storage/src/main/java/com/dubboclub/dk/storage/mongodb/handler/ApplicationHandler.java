@@ -1,9 +1,9 @@
-package com.dubboclub.dk.storage.mongodb.handle;
+package com.dubboclub.dk.storage.mongodb.handler;
 
 
-import com.dubboclub.dk.storage.mongodb.TraceDataHandle;
+import com.dubboclub.dk.storage.TraceDataHandler;
+import com.dubboclub.dk.storage.model.Application;
 import com.dubboclub.dk.storage.mongodb.dao.TracingApplicationDao;
-import com.dubboclub.dk.storage.mongodb.dto.TracingApplicationDto;
 import com.dubboclub.dk.tracing.api.Annotation;
 import com.dubboclub.dk.tracing.api.BinaryAnnotation;
 import com.dubboclub.dk.tracing.api.Endpoint;
@@ -13,7 +13,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -21,17 +20,18 @@ import org.springframework.beans.factory.InitializingBean;
 /**
  * Created by Zetas on 2016/7/11.
  */
-public class ApplicationHandle implements TraceDataHandle, InitializingBean {
+public class ApplicationHandler implements TraceDataHandler, InitializingBean {
 
-    private static Logger logger = LoggerFactory.getLogger(ApplicationHandle.class);
+    private static Logger logger = LoggerFactory.getLogger(ApplicationHandler.class);
 
-    private static final ConcurrentMap<Integer, Boolean> applicationNameHashMap = new ConcurrentHashMap<Integer, Boolean>();
+    private static final ConcurrentMap<Integer, Boolean> APPLICATIONS_CACHE = new ConcurrentHashMap<Integer, Boolean>();
 
     private TracingApplicationDao dao;
-    private SyncLoadTask syncLoadApplicationThread;
+    private SyncLoadTask syncLoadTask;
     private BlockingQueue<String> queue;
 
     private class SyncLoadTask extends Thread {
+
         private SyncLoadTask() {
             setName("Dst-application-sync-load-task-thread");
         }
@@ -49,8 +49,8 @@ public class ApplicationHandle implements TraceDataHandle, InitializingBean {
         }
     }
 
-    public ApplicationHandle() {
-        syncLoadApplicationThread = new SyncLoadTask();
+    public ApplicationHandler() {
+        syncLoadTask = new SyncLoadTask();
         queue = new LinkedBlockingQueue<String>();
     }
 
@@ -59,14 +59,7 @@ public class ApplicationHandle implements TraceDataHandle, InitializingBean {
     }
 
     @Override
-    public void handle(List<Span> spanList) {
-        logger.debug("span list size: {}", spanList.size());
-        for (Span span : spanList) {
-            handle(span);
-        }
-    }
-
-    private void handle(Span span) {
+    public void handle(Span span) {
         for (Annotation annotation : span.getAnnotationList()) {
             handle(annotation);
         }
@@ -84,26 +77,26 @@ public class ApplicationHandle implements TraceDataHandle, InitializingBean {
     }
 
     private void handle(Endpoint endpoint) {
-        if (!applicationNameHashMap.containsKey(endpoint.getApplicationName().hashCode())) {
+        if (!APPLICATIONS_CACHE.containsKey(endpoint.getApplicationName().hashCode())) {
             prepareAddApplication(endpoint.getApplicationName());
         }
     }
 
     private void prepareAddApplication(String applicationName) {
-        Boolean value = applicationNameHashMap.putIfAbsent(applicationName.hashCode(), false);
+        Boolean value = APPLICATIONS_CACHE.putIfAbsent(applicationName.hashCode(), false);
         if (value == null) {
             queue.add(applicationName);
         }
     }
 
     private void addApplication(String applicationName) {
-        TracingApplicationDto dto = new TracingApplicationDto();
-        dto.setApplicationId(applicationName.hashCode());
-        dto.setApplicationName(applicationName);
-        dto.setCreateTime(System.currentTimeMillis());
-        dao.add(dto);
+        Application application = new Application();
+        application.setId(applicationName.hashCode());
+        application.setName(applicationName);
+        application.setTimestamp(System.currentTimeMillis());
+        dao.add(application);
 
-        applicationNameHashMap.put(applicationName.hashCode(), true);
+        APPLICATIONS_CACHE.put(applicationName.hashCode(), true);
     }
 
     @Override
@@ -119,18 +112,18 @@ public class ApplicationHandle implements TraceDataHandle, InitializingBean {
     }
 
     private void loadApplication() {
-        List<TracingApplicationDto> dtoList = dao.findAll();
-        for (TracingApplicationDto dto : dtoList) {
-            applicationNameHashMap.put(dto.getApplicationId(), true);
+        List<Application> applications = dao.findAll();
+        for (Application application : applications) {
+            APPLICATIONS_CACHE.put(application.getId(), true);
         }
     }
 
     private void start() {
-        syncLoadApplicationThread.start();
+        syncLoadTask.start();
     }
 
     private void cancel() {
-        syncLoadApplicationThread.interrupt();
+        syncLoadTask.interrupt();
     }
 
 }

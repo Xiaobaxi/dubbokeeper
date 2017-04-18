@@ -1,9 +1,9 @@
-package com.dubboclub.dk.storage.mongodb.handle;
+package com.dubboclub.dk.storage.mongodb.handler;
 
 
-import com.dubboclub.dk.storage.mongodb.TraceDataHandle;
+import com.dubboclub.dk.storage.TraceDataHandler;
+import com.dubboclub.dk.storage.model.Service;
 import com.dubboclub.dk.storage.mongodb.dao.TracingServiceDao;
-import com.dubboclub.dk.storage.mongodb.dto.TracingServiceDto;
 import com.dubboclub.dk.tracing.api.Span;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -17,9 +17,9 @@ import org.springframework.beans.factory.InitializingBean;
 /**
  * Created by Zetas on 2016/7/11.
  */
-public class ServiceHandle implements TraceDataHandle, InitializingBean {
+public class ServiceHandler implements TraceDataHandler, InitializingBean {
 
-    private static Logger logger = LoggerFactory.getLogger(ServiceHandle.class);
+    private static Logger logger = LoggerFactory.getLogger(ServiceHandler.class);
 
     private static final ConcurrentMap<Integer, Boolean> serviceNameHashMap = new ConcurrentHashMap<Integer, Boolean>();
 
@@ -45,7 +45,7 @@ public class ServiceHandle implements TraceDataHandle, InitializingBean {
         }
     }
 
-    public ServiceHandle() {
+    public ServiceHandler() {
         syncLoadServiceThread = new SyncLoadTask();
         queue = new LinkedBlockingQueue<Span>();
     }
@@ -55,14 +55,7 @@ public class ServiceHandle implements TraceDataHandle, InitializingBean {
     }
 
     @Override
-    public void handle(List<Span> spanList) {
-        logger.debug("span list size: {}", spanList.size());
-        for (Span span : spanList) {
-            handle(span);
-        }
-    }
-
-    private void handle(Span span) {
+    public void handle(Span span) {
         if (!serviceNameHashMap.containsKey(span.getServiceName().hashCode())) {
             prepareAddService(span);
         }
@@ -76,11 +69,11 @@ public class ServiceHandle implements TraceDataHandle, InitializingBean {
     }
 
     private void addService(Span span) {
-        TracingServiceDto dto = new TracingServiceDto();
-        dto.setServiceId(span.getServiceName().hashCode());
-        dto.setServiceName(span.getServiceName());
-        dto.setCreateTime(System.currentTimeMillis());
-        dao.add(dto);
+        Service service = new Service();
+        service.setId(service.getName().hashCode());
+        service.setName(span.getServiceName());
+        service.setTimestamp(System.currentTimeMillis());
+        dao.add(service);
 
         serviceNameHashMap.put(span.getServiceName().hashCode(), true);
     }
@@ -91,10 +84,10 @@ public class ServiceHandle implements TraceDataHandle, InitializingBean {
     }
 
     private void loadService() {
-        List<TracingServiceDto> serviceDtoList = dao.findAll();
-        if (serviceDtoList != null) {
-            for (TracingServiceDto dto : serviceDtoList) {
-                serviceNameHashMap.put(dto.getServiceId(), true);
+        List<Service> services = dao.findAll();
+        if (services != null) {
+            for (Service service : services) {
+                serviceNameHashMap.put(service.getId(), true);
             }
         }
     }
